@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Document</title>
+</head>
+<body>
+    <img src="image1.jpg" name="slide" width="400" height="200" onmouseover="changeImg()" onmouseout="thit.src='image1.jpg'">
+
+    <script>
+        let i = 0
+        let image = []
+        let time = 3000
+
+        image[0] = 'image1.jpg'
+        image[1] = 'image2.jpg'
+        image[2] = 'image3.jpg'
+
+        function changeImg() {
+            document.slide.src = image[i]
+
+            if (i < image.length - 1) {
+                i++
+            }
+            else {
+                i = 0
+            }
+
+            setTimeout("changeImg()", time)
+        }
+
+        window.onload = changeImg()
+    
+    </script>
+</body>
+</html>
