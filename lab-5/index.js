@@ -1,13 +1,29 @@
 let express = require('express'),
     app = express(),
     bodyParser = require('body-parser'),
-    cookieParser = require('cookie-parser')
+    cookieParser = require('cookie-parser'),
+    session = require('express-session')
 const PORT = 80
 
 app.use(express.static('./public'))
 app.use(cookieParser('foobar'))
+app.use(session({
+    secret: 'foo bar',
+    cookie: { maxAge: 6000}
+}))
 
 let urlencodedParser = bodyParser.urlencoded({ extended: false });
+
+app.use((req, res, next) => {
+    let sess = req.session
+    sess.views = (sess.views)? ++sess.views : 1
+    console.log(sess.views)
+    next()
+})
+
+app.get('/views', (req, res) => {
+    res.send('The page is loaded: ' + req.session.views)
+})
 
 app.get('/getCk', (req, res) => {
     res.send('' + req.cookies.name + '' + req.cookies.surname)
