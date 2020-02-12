@@ -18,6 +18,9 @@
   },
   "homepage": "https://github.com/FARmer037/Lab-Client-Server#readme",
   "dependencies": {
-    "express": "^4.17.1"
+    "body-parser": "^1.19.0",
+    "cookie-parser": "^1.4.4",
+    "express": "^4.17.1",
+    "nodemon": "^2.0.2"
   }
 }
