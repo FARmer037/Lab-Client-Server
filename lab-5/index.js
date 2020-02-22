@@ -1,45 +1,183 @@
-let express = require('express'),
-    app = express(),
-    bodyParser = require('body-parser'),
-    cookieParser = require('cookie-parser'),
-    session = require('express-session')
-const PORT = 80
+let express = require('express')
+let session = require('express-session')
+let bodyParser = require('body-parser')
 
-app.use(express.static('./public'))
-app.use(cookieParser('foobar'))
-app.use(session({
-    secret: 'foo bar',
-    cookie: { maxAge: 6000}
+const TWO_HOURS = 1000 * 60 * 60 * 2
+
+const {
+    PORT = 3000,
+    NODE_ENV = 'development',
+
+    SESS_NAME = 'sid',
+    SESS_SECRET = 'ssh!quiet,it\'asecret!',
+    SESS_LIFETIME = TWO_HOURS
+} = process.env
+
+const IN_PROD = NODE_ENV === 'production'
+
+const users = [
+    { id: 1, name: 'Alex', email: 'alex@gmail.com', password: 'secret' },
+    { id: 2, name: 'Max', email: 'max@gmail.com', password: 'secret' },
+    { id: 3, name: 'John', email: 'john@gmail.com', password: 'secret' }
+]
+
+let app = express()
+
+app.use(bodyParser.urlencoded({
+    extended: true
 }))
 
-let urlencodedParser = bodyParser.urlencoded({ extended: false });
+app.use(session({
+    name: SESS_NAME,
+    resave: false,
+    saveUninitialized: false,
+    secret: SESS_SECRET,
+    cookie: {
+        maxAge: SESS_LIFETIME,
+        sameSite: true,
+        secure: IN_PROD
+    }
+}))
+
+const redirectLogin = (req, res, next) => {
+    if (!req.session.userId) {
+        res.redirect('/login')
+    }
+    else {
+        next()
+    }
+}
+
+const redirectHome = (req, res, next) => {
+    if (req.session.userId) {
+        res.redirect('/home')
+    }
+    else {
+        next()
+    }
+}
 
 app.use((req, res, next) => {
-    let sess = req.session
-    sess.views = (sess.views)? ++sess.views : 1
-    console.log(sess.views)
+    const { userId } = req.session
+    if (userId) {
+        res.locals.user = users.find(
+            user => user.id === req.session.userId
+        )
+    }
     next()
 })
 
-app.get('/views', (req, res) => {
-    res.send('The page is loaded: ' + req.session.views)
+app.get('/', (req, res) => {
+    const { userId } = req.session
+
+    res.send(`
+        <h1>Welcome!</h1>
+        ${userId ? `
+        <a href='/home'>Home</a>
+        <form method='post' action='/logout'>
+            <button>Logout</button>
+        </form>
+        ` : `
+        <a href='/login'>Login</a>
+        <a href='/register'>Register</a>
+        `}
+    `)
 })
 
-app.get('/getCk', (req, res) => {
-    res.send('' + req.cookies.name + '' + req.cookies.surname)
+app.get('/home', redirectLogin, (req, res) => {
+    const { user } = res.locals
+    console.log(req.session)
+
+    res.send(`
+        <h1>Home</h1>
+        <a href='/'>Main</a>
+        <ul>
+            <li>Name: ${user.name}</li>
+            <li>Email: ${user.email}</li>
+        </ul>
+    `)
 })
 
-app.get('/setCk', (req, res) => {
-    res.cookie('name', 'John')
-    res.cookie('surname', 'Wick')
-    res.send('Set cookie done!')
+app.get('/login', redirectHome, (req, res) => {
+    res.send(`
+        <h1>Login</h1>
+        <form method='post' action='/login'>
+            <input type='email' name='email' placeholder='Email' require />
+            <input type='password' name='password' placeholder='Password' require />
+            <input type='submit' />
+        </form>
+        <a href='/register'>Register</a>
+    `)
 })
 
-app.post('/add', urlencodedParser, (req, res) => {
-    let result = parseInt(req.body.a) + parseInt(req.body.b)
-    res.send('Result: ' + result)
+app.get('/register', redirectHome, (req, res) => {
+    res.send(`
+    <h1>Login</h1>
+    <form method='post' action='/register'>
+        <input name='name' placeholder='Name' require />
+        <input type='email' name='email' placeholder='Email' require />
+        <input type='password' name='password' placeholder='Password' require />
+        <input type='submit' />
+    </form>
+    <a href='/login'>Login</a>
+`)
 })
 
-app.listen(PORT, () => {
-    console.log('Server is running at: ', PORT)
+app.post('/login', redirectHome, (req, res) => {
+    const { email, password } = req.body
+
+    if (email && password) {
+        const user = users.find(
+            user => user.email === email && user.password === password
+        )
+
+        if (user) {
+            req.session.userId = user.id
+            return res.redirect('/home')
+        }
+    }
+
+    res.redirect('/login')
 })
+
+app.post('/register', redirectHome, (req, res) => {
+    const { name, email, password } = req.body
+
+    if (name && email && password) {
+        const exists = users.some(
+            user => user.email === email
+        )
+
+        if (!exists) {
+            const user = {
+                id: users.length + 1,
+                name,
+                email,
+                password
+            }
+
+            users.push(user)
+
+            req.session.userId = user.id
+
+            return res.redirect('/home')
+        }
+    }
+
+    res.redirect('/register')
+})
+
+app.post('/logout', redirectLogin, (req, res) => {
+    req.session.destroy(err => {
+        if (err) {
+            return res.redirect('/home')
+        }
+
+        res.clearCookie(SESS_NAME)
+        res.redirect('/login')
+    })
+})
+
+app.listen(PORT, () => console.log(
+    `http://localhaost:${PORT}`
+)); 
