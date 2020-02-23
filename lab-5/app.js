@@ -29,7 +29,13 @@ app.get('/admin', (req, res) => {
 
     // console.log(userEmail)
 
-    res.render('admin', { email: userEmail })
+    if(userEmail) {
+        res.render('admin', { email: userEmail, isLogin: true })
+    }
+    else {
+        res.render('admin', { isLogin: false })
+    }
+
 })
 
 app.post('/', (req, res) => {
@@ -42,11 +48,22 @@ app.post('/', (req, res) => {
         }
         if (user) {
             req.session.userEmail = email
-            // return res.redirect('/admin')
+            return res.redirect('/admin')
         }
     }
 
     res.redirect('/admin')
+})
+
+app.get('/logout', (req, res) => {
+    req.session.destroy(err => {
+        if (err) {
+            console.log(err)
+        }
+        else {
+            res.redirect('/')
+        }
+    })
 })
 
 app.listen(PORT, () => console.log(
