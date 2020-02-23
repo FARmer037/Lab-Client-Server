@@ -20,16 +20,6 @@ app.use(session({
 
 app.set('view engine', 'ejs')
 
-//  กรณีไม่อยาก refresh แล้วต่อ login ใหม่
-const redirectAdmin = (req, res, next) => {
-    if (req.session.userEmail) {
-        res.redirect('/admin')
-    }
-    else {
-        next()
-    }
-}
-
 app.get('/', (req, res) => {
     res.render('index')
 })
@@ -38,8 +28,6 @@ app.get('/admin', (req, res) => {
     const { userEmail } = req.session
 
     console.log(req.session.userEmail)
-
-    // console.log(userEmail)
 
     if(userEmail) {
         res.render('admin', { email: userEmail, isLogin: true })
