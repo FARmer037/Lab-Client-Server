@@ -6,7 +6,7 @@ const PORT = 8000
 let app = express()
 
 app.use(bodyParser.urlencoded({
-    extended: true
+    extended: false
 }))
 
 app.use(session({
